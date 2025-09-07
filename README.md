@@ -58,8 +58,6 @@ Additional test accounts are available in `ADMIN_STUDENT_CREDENTIALS.md`.
 - My Registrations
 - Profile
 
-> **Note**: Events created in the admin portal are instantly visible in the student app.
-
 ## About
 
 The Campus Event Platform simplifies event management for colleges, making it easier for admins to organize and for students to participate. With real-time updates, intuitive dashboards, and cross-college visibility, it fosters seamless collaboration and engagement.
