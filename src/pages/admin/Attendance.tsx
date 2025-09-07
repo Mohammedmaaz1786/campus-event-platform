@@ -18,6 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Calendar, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
 import { eventsAPI } from '@/lib/api';
@@ -101,6 +110,10 @@ export default function Attendance() {
   const [searchTerm, setSearchTerm] = useState('');
   const [eventFilter, setEventFilter] = useState<'all' | string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<AttendanceRecord>>({});
 
   const events = Array.from(new Set(attendance.map(record => record.event_title)));
 
@@ -155,9 +168,66 @@ export default function Attendance() {
     return `${hours}h ${mins}m`;
   };
 
+  const handleView = (record: AttendanceRecord) => {
+    setSelectedRecord(record);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEdit = (record: AttendanceRecord) => {
+    setSelectedRecord(record);
+    setEditFormData(record);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (selectedRecord && editFormData) {
+      const updatedAttendance = attendance.map(record =>
+        record.id === selectedRecord.id ? { ...record, ...editFormData } : record
+      );
+      setAttendance(updatedAttendance);
+      setIsEditModalOpen(false);
+      setSelectedRecord(null);
+      setEditFormData({});
+    }
+  };
+
   const handleExport = () => {
-    // Mock export functionality
-    console.log('Exporting attendance data...');
+    // Export filtered attendance data to CSV
+    const csvHeaders = [
+      'Record ID',
+      'Event Title',
+      'Event Date',
+      'User Name',
+      'User Email',
+      'User College',
+      'Check-in Time',
+      'Check-out Time',
+      'Status',
+      'Duration (minutes)'
+    ];
+
+    const csvData = filteredAttendance.map(record => [
+      record.id,
+      record.event_title,
+      new Date(record.event_date).toLocaleDateString(),
+      record.user_name,
+      record.user_email,
+      record.user_college,
+      record.check_in_time ? new Date(record.check_in_time).toLocaleString() : 'N/A',
+      record.check_out_time ? new Date(record.check_out_time).toLocaleString() : 'N/A',
+      record.status,
+      record.duration ? record.duration.toString() : 'N/A'
+    ]);
+
+    const csvContent = [csvHeaders, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `attendance_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
   };
 
   const calculateAttendanceRate = () => {
@@ -340,10 +410,18 @@ export default function Attendance() {
                   <TableCell>{getStatusBadge(record.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleView(record)}
+                      >
                         View
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEdit(record)}
+                      >
                         Edit
                       </Button>
                     </div>
@@ -354,6 +432,147 @@ export default function Attendance() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Attendance Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Attendance Details</DialogTitle>
+            <DialogDescription>
+              View complete attendance information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRecord && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">User Name</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRecord.user_name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Email</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRecord.user_email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">College</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRecord.user_college}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Event</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRecord.event_title}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Event Date</Label>
+                  <p className="text-sm text-muted-foreground">{formatDateTime(selectedRecord.event_date)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="mt-1">{getStatusBadge(selectedRecord.status)}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Check-in Time</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRecord.check_in_time ? formatDateTime(selectedRecord.check_in_time) : 'Not checked in'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Check-out Time</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRecord.check_out_time ? formatDateTime(selectedRecord.check_out_time) : 'Not checked out'}
+                  </p>
+                </div>
+                {selectedRecord.duration && (
+                  <div className="col-span-2">
+                    <Label className="text-sm font-medium">Duration</Label>
+                    <p className="text-sm text-muted-foreground">{formatDuration(selectedRecord.duration)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Attendance Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Attendance</DialogTitle>
+            <DialogDescription>
+              Update attendance information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRecord && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select
+                    value={editFormData.status || selectedRecord.status}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, status: value as AttendanceRecord['status'] }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="present">Present</SelectItem>
+                      <SelectItem value="absent">Absent</SelectItem>
+                      <SelectItem value="late">Late</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-checkin">Check-in Time</Label>
+                  <Input
+                    type="datetime-local"
+                    value={editFormData.check_in_time ? new Date(editFormData.check_in_time).toISOString().slice(0, 16) : 
+                           selectedRecord.check_in_time ? new Date(selectedRecord.check_in_time).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, check_in_time: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-checkout">Check-out Time</Label>
+                  <Input
+                    type="datetime-local"
+                    value={editFormData.check_out_time ? new Date(editFormData.check_out_time).toISOString().slice(0, 16) : 
+                           selectedRecord.check_out_time ? new Date(selectedRecord.check_out_time).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, check_out_time: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Attendance Information (Read-only)</Label>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <Label className="text-sm font-medium">User</Label>
+                    <p className="text-sm text-muted-foreground">{selectedRecord.user_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <p className="text-sm text-muted-foreground">{selectedRecord.user_email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Event</Label>
+                    <p className="text-sm text-muted-foreground">{selectedRecord.event_title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Event Date</Label>
+                    <p className="text-sm text-muted-foreground">{formatDateTime(selectedRecord.event_date)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

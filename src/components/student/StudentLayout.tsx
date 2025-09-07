@@ -1,29 +1,29 @@
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Navbar } from './Navbar';
+import { StudentNavbar } from './StudentNavbar';
+import { StudentSidebar } from './StudentSidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from 'next-themes';
 
-export function DashboardLayout() {
+export function StudentLayout() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <div className="min-h-screen bg-dashboard-bg">
         <div className="flex h-screen">
           {/* Sidebar */}
           <div className="w-64 flex-shrink-0">
-            <Sidebar />
+            <StudentSidebar />
           </div>
 
           {/* Main content */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Navbar />
+            <StudentNavbar />
             
-            <main className="flex-1 overflow-y-auto p-6">
+            {/* Page content */}
+            <main className="flex-1 overflow-auto p-6 bg-dashboard-bg">
               <Outlet />
             </main>
           </div>
         </div>
-        
         <Toaster />
       </div>
     </ThemeProvider>

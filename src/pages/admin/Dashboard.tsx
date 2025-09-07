@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Calendar, Users, UserCheck, Star } from 'lucide-react';
+import { Calendar, Users, UserCheck, Star, Search } from 'lucide-react';
 import { eventsAPI, usersAPI } from '@/lib/api';
+import { getTimeAgo } from '@/lib/time-utils';
+import { getActivities } from '@/lib/activity-manager';
+import { getRealTimeAdminStats, syncAdminEventRegistrations, initializeAdminStatsTracking, clearAndReinitializeStatsData } from '@/lib/admin-stats-sync';
+import { getCurrentUserSession } from '@/lib/user-data-manager';
+import { initializeEnhancedMockData } from '@/lib/enhanced-mock-data';
 
 // Mock data for demonstration
 const popularEventsData = [
@@ -22,25 +28,91 @@ export default function Dashboard() {
     averageFeedback: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activities, setActivities] = useState(getActivities());
+
+  const filteredActivities = activities.filter(activity =>
+    activity.event.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    activity.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    activity.user.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Mock API calls - replace with real API when backend is ready
+        // Initialize enhanced mock data first
+        initializeEnhancedMockData();
+        
+        // Get current user session
+        const userSession = getCurrentUserSession();
+        if (!userSession || userSession.role !== 'admin') {
+          setStats({
+            totalEvents: 0,
+            totalUsers: 0,
+            totalRegistrations: 0,
+            averageFeedback: 0,
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Only reinitialize if really needed
+        const quickCheck = localStorage.getItem('event_registrations');
+        if (!quickCheck || JSON.parse(quickCheck).length < 5) {
+          console.log('Minimal data, reinitializing...');
+          clearAndReinitializeStatsData();
+          initializeEnhancedMockData();
+        }
+
+        // Default stats
+        let totalEvents = 1;
+        let totalRegistrations = 1;
+        
+        try {
+          // Try to get real stats
+          initializeAdminStatsTracking(userSession.email);
+          syncAdminEventRegistrations();
+          
+          const realTimeStats = getRealTimeAdminStats(userSession.email);
+          totalEvents = realTimeStats.eventsCreated || 1;
+          totalRegistrations = realTimeStats.totalRegistrations || 1;
+          
+          console.log('Dashboard stats calculated:', { totalEvents, totalRegistrations });
+        } catch (error) {
+          console.error('Error calculating real-time stats, using defaults:', error);
+        }
+
         setStats({
-          totalEvents: 24,
-          totalUsers: 1247,
-          totalRegistrations: 3456,
-          averageFeedback: 4.2,
+          totalEvents,
+          totalUsers: 1247, // Static for now
+          totalRegistrations,
+          averageFeedback: 4.2, // Static for now
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error('Error in Dashboard fetchStats:', error);
+        // Fallback stats
+        setStats({
+          totalEvents: 1,
+          totalUsers: 1247,
+          totalRegistrations: 1,
+          averageFeedback: 4.2,
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
+  }, []);
+
+  // Update times every minute to keep them current
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Force re-render to update relative times and refresh activities
+      setActivities(getActivities());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -51,6 +123,17 @@ export default function Dashboard() {
         <p className="text-muted-foreground">
           Welcome back! Here's what's happening with your campus events.
         </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search recent activities..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Stats Cards */}
@@ -134,20 +217,19 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { event: 'Tech Symposium', action: 'New registration', user: 'John Doe', time: '2 mins ago' },
-                { event: 'Cultural Fest', action: 'Event created', user: 'Admin', time: '1 hour ago' },
-                { event: 'Sports Meet', action: 'Bulk registration', user: 'Jane Smith', time: '3 hours ago' },
-                { event: 'Career Fair', action: 'Event updated', user: 'Admin', time: '5 hours ago' },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <div>
-                    <p className="font-medium text-sm">{activity.event}</p>
-                    <p className="text-xs text-muted-foreground">{activity.action} by {activity.user}</p>
+              {filteredActivities.length > 0 ? (
+                filteredActivities.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                    <div>
+                      <p className="font-medium text-sm">{activity.event}</p>
+                      <p className="text-xs text-muted-foreground">{activity.action} by {activity.user}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{getTimeAgo(activity.timestamp)}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{activity.time}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground">No activities match your search.</p>
+              )}
             </div>
           </CardContent>
         </Card>

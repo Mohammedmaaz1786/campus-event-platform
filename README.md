@@ -1,63 +1,94 @@
 # Campus Event Platform
 
-A modern platform designed to streamline campus event management for colleges. Admins can effortlessly create, edit, and track events, while students can browse, register, and monitor their attendance. The platform ensures seamless synchronization between admins and students, providing live updates and personalized dashboards.
+A comprehensive event management solution built for educational institutions. The platform features two portals (Admin & Student), mock authentication for demo purposes, and a full-stack architecture ready for production deployment.
 
-## Features
+## Key Features
 
-- **Event Management**: Admins can create, edit, and manage events in real time.
-- **Student Engagement**: Students can view upcoming events, register, check in for attendance, and provide feedback.
-- **Live Updates**: Real-time event updates and search functionality.
-- **Cross-College Visibility**: Events are visible across participating colleges.
-- **Dashboards**: Participation stats and individual dashboards for both admins and students.
+- **Login System**: Demo authentication with fixed credentials, ready for real integration.
+- **Event Management**: Full CRUD functionality to create, update, and delete campus events.
+- **Dual Portals**: Segregated admin and student portals for distinct functionality.
+- **Analytics Dashboard**: Real-time display of participation, attendance, and event popularity.
+- **Registration System**: Students can register for events, check in, and track attendance.
 
 ## Tech Stack
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS
-- **Backend**: FastAPI with SQLite (local) / Postgres (production)
-- **Mobile**: React Native (Expo)
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + Shadcn/ui
+- **Backend**: FastAPI + SQLAlchemy (backend implemented and ready to integrate)
+- **State Management**: React Query + LocalStorage
+- **Authentication**: JWT-based mock login system
+- **Database**: Schema designed for SQLite/PostgreSQL
 
-## Quick Start
+## Quick Setup
 
 1. Install dependencies:
    ```bash
    npm install
    ```
-2. Run the development server:
+2. Start development server:
    ```bash
    npm run dev
    ```
-3. Visit `http://localhost:8080` in your browser.
 
-## Login & Test Accounts
+The app is available at http://localhost:8080
 
-### Admin
-- **Email**: `admin@campus.edu`
-- **Password**: `admin123`
-- **Login**: `/admin/login`
+## Demo Credentials
 
-### Student
-- **Email**: `john.doe@student.edu`
-- **Password**: `student123`
-- **Login**: `/student/login`
+| Role   | Email                  | Password   | Portal         |
+|--------|------------------------|------------|----------------|
+| Admin  | admin@campus.edu       | admin123   | /login         |
+| Student| student@campus.edu     | student123 | /student/login |
 
-Additional test accounts are available in `ADMIN_STUDENT_CREDENTIALS.md`.
+## Dual Portal Architecture
 
-## Navigation
+### Admin Portal (/login → /dashboard)
 
-### Admin Portal (`/admin`)
-- Dashboard
-- Events
-- Users
-- Registrations
-- Reports
-- Profile
+Everything admins need to manage campus events:
 
-### Student Portal (`/student`)
-- Home
-- Events
-- My Registrations
-- Profile
+- **Dashboard**: General overview with analytics and key statistics.
+- **Event Management**: Create, edit, delete, and monitor events.
+- **User Administration**: Add/manage students, staff, and permissions.
+- **Registration Control**: View and manage student registrations.
+- **Reports & Analytics**: Monitor attendance, popularity, and participation.
+- **Settings**: System preference settings.
 
-## About
+### Student Portal (/student/login → /student)
 
-The Campus Event Platform simplifies event management for colleges, making it easier for admins to organize and for students to participate. With real-time updates, intuitive dashboards, and cross-college visibility, it fosters seamless collaboration and engagement.
+Student event discovery and participation features:
+
+- **Home Dashboard**: Personal statistics and upcoming events.
+- **Event Discovery**: Browse and search all campus events.
+- **My Registrations**: Track your sign-ups.
+- **Check-in System**: QR code or manual check-in for events.
+- **Feedback System**: Review and rate attended events.
+- **Profile**: Manage personal information and participation history.
+
+## Portal Routes & Features
+
+### Admin Routes
+
+- `/login`: Admin login page
+- `/dashboard`: Overview & analytics
+- `/events`: Event management and creation
+- `/users`: Student/faculty account management
+- `/registrations`: View of all registrations
+- `/attendance`: Event attendance tracking
+- `/reports`: Generation of detailed reports
+
+### Student Routes
+
+- `/student/login`: Student login page
+- `/student`: Student dashboard
+- `/student/events`: Event discovery & search
+- `/student/registrations`: Sign-ups management
+- `/student/profile`: Personal profile & stats
+
+## Current Implementation
+
+- **Frontend**: Fully operational with mock data
+- **Authentication**: Demo credentials integrated with JWT mock system
+- **Backend**: API structure and routes defined (FastAPI-ready)
+- **Database**: Schema structured for SQLite/PostgreSQL
+- **Deployment**: Production-ready with environment-based configuration
+
+A contemporary platform that simplifies event management for admins and engages students—created with cutting-edge web technologies.

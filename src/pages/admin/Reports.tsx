@@ -68,7 +68,124 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
 
   const handleExport = (reportType: string) => {
-    console.log(`Exporting ${reportType} report...`);
+    setLoading(true);
+    
+    let csvHeaders: string[] = [];
+    let csvData: any[][] = [];
+    let fileName = '';
+
+    switch (reportType) {
+      case 'event-popularity':
+        csvHeaders = ['Event Name', 'Registrations', 'Attendance', 'Attendance Rate (%)', 'No-Show Rate (%)'];
+        csvData = eventPopularityData.map(event => {
+          const attendanceRate = Math.round((event.attendance / event.registrations) * 100);
+          const noShowRate = Math.round(((event.registrations - event.attendance) / event.registrations) * 100);
+          return [
+            event.name,
+            event.registrations.toString(),
+            event.attendance.toString(),
+            attendanceRate.toString(),
+            noShowRate.toString()
+          ];
+        });
+        fileName = 'event_popularity_report';
+        break;
+
+      case 'attendance-distribution':
+        csvHeaders = ['Status', 'Count', 'Percentage (%)', 'Color Code'];
+        const totalAttendance = attendanceData.reduce((sum, item) => sum + item.value, 0);
+        csvData = attendanceData.map(item => [
+          item.name,
+          item.value.toString(),
+          Math.round((item.value / totalAttendance) * 100).toString(),
+          item.color
+        ]);
+        fileName = 'attendance_distribution_report';
+        break;
+
+      case 'monthly-trends':
+        csvHeaders = ['Month', 'Events', 'Participants'];
+        csvData = studentParticipationData.map(item => [
+          item.month,
+          item.events.toString(),
+          item.participants.toString()
+        ]);
+        fileName = 'monthly_trends_report';
+        break;
+
+      case 'student-participation':
+        csvHeaders = ['Month', 'Events Hosted', 'Total Participants', 'Average per Event', 'Growth Rate (%)'];
+        csvData = studentParticipationData.map((item, index) => {
+          const avgPerEvent = Math.round(item.participants / item.events);
+          const growthRate = index > 0 
+            ? Math.round(((item.participants - studentParticipationData[index - 1].participants) / studentParticipationData[index - 1].participants) * 100)
+            : 0;
+          return [
+            item.month,
+            item.events.toString(),
+            item.participants.toString(),
+            avgPerEvent.toString(),
+            growthRate.toString()
+          ];
+        });
+        fileName = 'student_participation_report';
+        break;
+
+      default:
+        csvHeaders = ['Report Type', 'Generated Date'];
+        csvData = [[reportType, new Date().toLocaleDateString()]];
+        fileName = 'general_report';
+    }
+
+    // Add summary statistics
+    let summaryData: string[][] = [
+      [], // Empty row for separation
+      ['REPORT SUMMARY'],
+      ['Generated Date', new Date().toLocaleDateString()],
+      ['Generated Time', new Date().toLocaleTimeString()],
+      ['Total Records', csvData.length.toString()],
+      ['Report Type', reportType.replace('-', ' ').toUpperCase()],
+    ];
+
+    // Add report-specific summaries
+    if (reportType === 'event-popularity') {
+      const totalRegistrations = eventPopularityData.reduce((sum, event) => sum + event.registrations, 0);
+      const totalAttendance = eventPopularityData.reduce((sum, event) => sum + event.attendance, 0);
+      const overallAttendanceRate = Math.round((totalAttendance / totalRegistrations) * 100);
+      
+      summaryData.push(
+        [],
+        ['STATISTICS'],
+        ['Total Events', eventPopularityData.length.toString()],
+        ['Total Registrations', totalRegistrations.toString()],
+        ['Total Attendance', totalAttendance.toString()],
+        ['Overall Attendance Rate', `${overallAttendanceRate}%`],
+        ['Most Popular Event', eventPopularityData.reduce((max, event) => event.registrations > max.registrations ? event : max).name],
+        ['Best Attended Event', eventPopularityData.reduce((max, event) => (event.attendance / event.registrations) > (max.attendance / max.registrations) ? event : max).name]
+      );
+    } else if (reportType === 'attendance-distribution') {
+      const totalAttendance = attendanceData.reduce((sum, item) => sum + item.value, 0);
+      summaryData.push(
+        [],
+        ['STATISTICS'],
+        ['Total Attendees', totalAttendance.toString()],
+        ['Present Rate', `${Math.round((attendanceData.find(item => item.name === 'Present')?.value || 0) / totalAttendance * 100)}%`],
+        ['Late Rate', `${Math.round((attendanceData.find(item => item.name === 'Late')?.value || 0) / totalAttendance * 100)}%`],
+        ['Absent Rate', `${Math.round((attendanceData.find(item => item.name === 'Absent')?.value || 0) / totalAttendance * 100)}%`]
+      );
+    }
+
+    const csvContent = [csvHeaders, ...csvData, ...summaryData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+
+    setTimeout(() => setLoading(false), 1000);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {

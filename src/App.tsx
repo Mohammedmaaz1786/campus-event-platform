@@ -5,25 +5,29 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 
-// Pages
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Events from "./pages/Events";
-import Users from "./pages/Users";
-import Registrations from "./pages/Registrations";
-import Attendance from "./pages/Attendance";
-import Reports from "./pages/Reports";
-import NotFound from "./pages/NotFound";
+// Admin Pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import Dashboard from "./pages/admin/Dashboard";
+import AdminEventsEnhanced from "./pages/admin/AdminEventsEnhanced";
+import Users from "./pages/admin/Users";
+import Registrations from "./pages/admin/Registrations";
+import Attendance from "./pages/admin/Attendance";
+import Reports from "./pages/admin/Reports";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 // Student Pages
 import StudentLogin from "./pages/student/StudentLogin";
-import StudentHome from "./pages/student/StudentHome";
-import StudentEvents from "./pages/student/StudentEvents";
-import StudentRegistrations from "./pages/student/StudentRegistrations";
-import StudentProfile from "./pages/student/StudentProfile";
+import StudentHomeFixed from "./pages/student/StudentHomeFixed";
+import StudentBrowseEvents from "./pages/student/StudentBrowseEvents";
+import StudentMyRegistrations from "./pages/student/StudentMyRegistrations";
+import StudentProfileFixed from "./pages/student/StudentProfileFixed";
+
+// Shared Pages
+import NotFound from "./pages/NotFound";
 
 // Components
-import { DashboardLayout } from "./components/DashboardLayout";
+import { AdminLayout } from "./components/admin/AdminLayout";
+import { StudentLayoutFixed } from "./components/student/StudentLayoutFixed";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -37,45 +41,40 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/student/login" element={<StudentLogin />} />
             
+            {/* Redirect root to admin login */}
+            <Route path="/" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+            
             {/* Protected Admin Routes */}
-            <Route path="/" element={
+            <Route path="/admin" element={
               <ProtectedRoute>
-                <DashboardLayout />
+                <AdminLayout />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="events" element={<Events />} />
+              <Route path="events" element={<AdminEventsEnhanced />} />
               <Route path="users" element={<Users />} />
               <Route path="registrations" element={<Registrations />} />
               <Route path="attendance" element={<Attendance />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="profile" element={<AdminProfile />} />
             </Route>
             
             {/* Protected Student Routes */}
             <Route path="/student" element={
               <ProtectedRoute>
-                <StudentHome />
+                <StudentLayoutFixed />
               </ProtectedRoute>
-            } />
-            <Route path="/student/events" element={
-              <ProtectedRoute>
-                <StudentEvents />
-              </ProtectedRoute>
-            } />
-            <Route path="/student/registrations" element={
-              <ProtectedRoute>
-                <StudentRegistrations />
-              </ProtectedRoute>
-            } />
-            <Route path="/student/profile" element={
-              <ProtectedRoute>
-                <StudentProfile />
-              </ProtectedRoute>
-            } />
+            }>
+              <Route index element={<StudentHomeFixed />} />
+              <Route path="events" element={<StudentBrowseEvents />} />
+              <Route path="registrations" element={<StudentMyRegistrations />} />
+              <Route path="profile" element={<StudentProfileFixed />} />
+            </Route>
             
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />

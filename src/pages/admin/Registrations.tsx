@@ -18,6 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Calendar, User, Download } from 'lucide-react';
 import { eventsAPI } from '@/lib/api';
@@ -90,13 +99,64 @@ const mockRegistrations: Registration[] = [
     status: 'confirmed',
     payment_status: 'paid',
   },
+  {
+    id: '5',
+    event_id: '4',
+    event_title: 'AI Workshop',
+    event_date: '2024-04-10T14:00:00',
+    user_id: '5',
+    user_name: 'Emma Davis',
+    user_email: 'emma.davis@campus.edu',
+    user_college: 'Computer Science',
+    registration_date: '2024-03-01T10:30:00',
+    status: 'confirmed',
+    payment_status: 'free',
+  },
+  {
+    id: '6',
+    event_id: '5',
+    event_title: 'Science Expo',
+    event_date: '2024-04-15T09:00:00',
+    user_id: '6',
+    user_name: 'Michael Brown',
+    user_email: 'michael.brown@campus.edu',
+    user_college: 'Sciences',
+    registration_date: '2024-03-05T15:20:00',
+    status: 'confirmed',
+    payment_status: 'paid',
+  },
 ];
 
 export default function Registrations() {
-  const [registrations, setRegistrations] = useState<Registration[]>(mockRegistrations);
+  // Load registrations from localStorage or use mock data as fallback
+  const getStoredRegistrations = (): Registration[] => {
+    try {
+      const stored = localStorage.getItem('campusRegistrations');
+      return stored ? JSON.parse(stored) : mockRegistrations;
+    } catch {
+      return mockRegistrations;
+    }
+  };
+
+  const [registrations, setRegistrations] = useState<Registration[]>(getStoredRegistrations);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Save registrations to localStorage
+  const saveRegistrations = (newRegistrations: Registration[]) => {
+    try {
+      localStorage.setItem('campusRegistrations', JSON.stringify(newRegistrations));
+      setRegistrations(newRegistrations);
+    } catch (error) {
+      console.error('Failed to save registrations to localStorage:', error);
+      setRegistrations(newRegistrations);
+    }
+  };
   const [eventFilter, setEventFilter] = useState<'all' | string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Registration>>({});
 
   const events = Array.from(new Set(registrations.map(reg => reg.event_title)));
 
@@ -153,9 +213,64 @@ export default function Registrations() {
     });
   };
 
+  const handleView = (registration: Registration) => {
+    setSelectedRegistration(registration);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEdit = (registration: Registration) => {
+    setSelectedRegistration(registration);
+    setEditFormData(registration);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (selectedRegistration && editFormData) {
+      const updatedRegistrations = registrations.map(reg =>
+        reg.id === selectedRegistration.id ? { ...reg, ...editFormData } : reg
+      );
+      saveRegistrations(updatedRegistrations);
+      setIsEditModalOpen(false);
+      setSelectedRegistration(null);
+      setEditFormData({});
+    }
+  };
+
   const handleExport = () => {
-    // Mock export functionality
-    console.log('Exporting registrations...');
+    // Export filtered registrations to CSV
+    const csvHeaders = [
+      'Registration ID',
+      'Event Title',
+      'Event Date',
+      'User Name',
+      'User Email',
+      'User College',
+      'Registration Date',
+      'Status',
+      'Payment Status'
+    ];
+
+    const csvData = filteredRegistrations.map(reg => [
+      reg.id,
+      reg.event_title,
+      new Date(reg.event_date).toLocaleDateString(),
+      reg.user_name,
+      reg.user_email,
+      reg.user_college,
+      new Date(reg.registration_date).toLocaleDateString(),
+      reg.status,
+      reg.payment_status
+    ]);
+
+    const csvContent = [csvHeaders, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `registrations_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
   };
 
   return (
@@ -311,10 +426,18 @@ export default function Registrations() {
                   <TableCell>{getPaymentBadge(registration.payment_status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleView(registration)}
+                      >
                         View
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEdit(registration)}
+                      >
                         Edit
                       </Button>
                     </div>
@@ -325,6 +448,135 @@ export default function Registrations() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Registration Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registration Details</DialogTitle>
+            <DialogDescription>
+              View complete registration information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRegistration && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">User Name</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRegistration.user_name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Email</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRegistration.user_email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">College</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRegistration.user_college}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Event</Label>
+                  <p className="text-sm text-muted-foreground">{selectedRegistration.event_title}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Event Date</Label>
+                  <p className="text-sm text-muted-foreground">{formatDateTime(selectedRegistration.event_date)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Registration Date</Label>
+                  <p className="text-sm text-muted-foreground">{formatDateTime(selectedRegistration.registration_date)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="mt-1">{getStatusBadge(selectedRegistration.status)}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Payment Status</Label>
+                  <div className="mt-1">{getPaymentBadge(selectedRegistration.payment_status)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Registration Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Registration</DialogTitle>
+            <DialogDescription>
+              Update registration information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRegistration && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select
+                    value={editFormData.status || selectedRegistration.status}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, status: value as Registration['status'] }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="waitlist">Waitlist</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-payment">Payment Status</Label>
+                  <Select
+                    value={editFormData.payment_status || selectedRegistration.payment_status}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, payment_status: value as Registration['payment_status'] }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="free">Free</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Registration Information (Read-only)</Label>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <Label className="text-sm font-medium">User</Label>
+                    <p className="text-sm text-muted-foreground">{selectedRegistration.user_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <p className="text-sm text-muted-foreground">{selectedRegistration.user_email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Event</Label>
+                    <p className="text-sm text-muted-foreground">{selectedRegistration.event_title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Registration Date</Label>
+                    <p className="text-sm text-muted-foreground">{formatDateTime(selectedRegistration.registration_date)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

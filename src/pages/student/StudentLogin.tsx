@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GraduationCap, Mail, Lock, User, School } from 'lucide-react';
-import { authAPI, usersAPI } from '@/lib/api';
+import { studentAuthAPI } from '@/lib/student/api';
 import { useToast } from '@/hooks/use-toast';
+import { initializeEnhancedMockData, getStudentByEmail } from '../../lib/enhanced-mock-data';
+import { initializeUserData } from '../../lib/user-data-manager';
 
 export default function StudentLogin() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -26,20 +28,51 @@ export default function StudentLogin() {
     setIsLoading(true);
     
     try {
-      const response = await authAPI.login(loginForm);
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/student');
+      // Initialize enhanced mock data
+      initializeEnhancedMockData();
+      
+      // Check if student exists in mock data
+      const student = getStudentByEmail(loginForm.email);
+      
+      if (student && student.password === loginForm.password) {
+        // Set student authentication with all profile data
+        localStorage.setItem('user', JSON.stringify({
+          id: student.id,
+          email: student.email,
+          name: student.name,
+          role: 'student',
+          college: student.college,
+          year: student.year,
+          major: student.major,
+          phone: student.phone,
+          joinDate: student.joinDate,
+          gpa: student.gpa
+        }));
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userType', 'student');
+        
+        // Initialize user-specific data
+        initializeUserData(student.email, 'student');
+        
+        navigate('/student');
+        toast({
+          title: 'Login successful',
+          description: `Welcome ${student.name}!`,
+        });
+      } else {
+        toast({
+          title: 'Login failed',
+          description: 'Invalid email or password',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       console.error('Login failed:', error);
-      // Demo login for testing
-      localStorage.setItem('token', 'demo-token');
-      localStorage.setItem('user', JSON.stringify({
-        name: 'Demo Student',
-        email: loginForm.email,
-        college: 'Computer Science'
-      }));
-      navigate('/student');
+      toast({
+        title: 'Login failed',
+        description: 'An error occurred during login',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -50,9 +83,10 @@ export default function StudentLogin() {
     setIsLoading(true);
     
     try {
-      await usersAPI.create({
+      await studentAuthAPI.register({
         ...registerForm,
-        role: 'student'
+        department: 'Computer Science', // Default for demo
+        year: '1st Year' // Default for demo
       });
       toast({
         title: 'Registration Successful',

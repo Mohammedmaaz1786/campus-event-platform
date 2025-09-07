@@ -7,25 +7,26 @@ import {
   ClipboardList, 
   BarChart3,
   LogOut,
-  GraduationCap
+  GraduationCap,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { authAPI } from '@/lib/api';
+import { adminAuthAPI } from '@/lib/admin/api';
 
 const sidebarItems = [
-  { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { title: 'Events', icon: Calendar, path: '/events' },
-  { title: 'Users', icon: Users, path: '/users' },
-  { title: 'Registrations', icon: UserCheck, path: '/registrations' },
-  { title: 'Attendance', icon: ClipboardList, path: '/attendance' },
-  { title: 'Reports', icon: BarChart3, path: '/reports' },
+  { title: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+  { title: 'Events', icon: Calendar, path: '/admin/events' },
+  { title: 'Registrations', icon: UserCheck, path: '/admin/registrations' },
+  { title: 'Attendance', icon: ClipboardList, path: '/admin/attendance' },
+  { title: 'Reports', icon: BarChart3, path: '/admin/reports' },
+  { title: 'Profile', icon: User, path: '/admin/profile' },
 ];
 
-export function Sidebar() {
+export function AdminSidebar() {
   const location = useLocation();
 
   const handleLogout = () => {
-    authAPI.logout();
+    adminAuthAPI.logout();
   };
 
   return (

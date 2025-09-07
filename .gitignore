@@ -23,69 +23,27 @@ dist-ssr
 *.sln
 *.sw?
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Debug and temporary files
+debug-*.js
+test-*.js
+*-debug.*
+*-test.*
+*.tmp
+*.temp
 
-# Virtual environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# Documentation files that are temporary
+*_FIXES_*.md
+*_COMPLETE.md
+EMERGENCY_*.md
+
+# Python virtual environment
 .venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Capacitor
-android/
-ios/
-www/
+# Build outputs
+build/
+out/
